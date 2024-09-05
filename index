@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>$Grass Wallet Query</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #ddd;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>$Grass Batch Query</h1>
+        <p>Enter wallet addresses below, one per line:</p>
+        <textarea id="walletInput" placeholder="Enter wallet addresses..."></textarea>
+        <button id="queryButton" onclick="queryWallets()">Query Wallets</button>
+
+        <table id="resultTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Address</th>
+                    <th>Sum</th>
+                    <th>isSybil</th>
+                </tr>
+            </thead>
+            <tbody id="resultBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        async function queryWallets() {
+            const walletAddresses = document.getElementById('walletInput').value.trim().split('\n').map(addr => addr.trim());
+            const resultTable = document.getElementById('resultTable');
+            const resultBody = document.getElementById('resultBody');
+
+            resultBody.innerHTML = '';  // Clear previous results
+            resultTable.style.display = 'none';  // Hide table initially
+
+            for (let address of walletAddresses) {
+                if (address) {
+                    const apiUrl = `https://api.getgrass.io/airdropAllocations?input=%7B%22walletAddress%22:%22${encodeURIComponent(address)}%22%7D`;
+                    try {
+                        const response = await fetch(apiUrl);
+                        if (response.ok) {
+                            const data = await response.json();
+                            const walletData = data.result?.data || {};
+                            const sum = Object.values(walletData).reduce((acc, val) => acc + val, 0);
+                            const isSybil = Object.keys(walletData).some(key => key.toLowerCase().includes('sybil'));
+
+                            // Append row to table
+                            resultBody.innerHTML += `
+                            <tr>
+                                <td>${address}</td>
+                                <td>${sum.toFixed(2)}</td>
+                                <td>${isSybil}</td>
+                            </tr>
+                        `;
+                        } else {
+                            console.error(`Error fetching data for address: ${address}`);
+                        }
+                    } catch (error) {
+                        console.error(`Error querying API for address ${address}: `, error);
+                    }
+                }
+            }
+
+            if (resultBody.innerHTML) {
+                resultTable.style.display = 'table';  // Show table when data is available
+            }
+        }
+    </script>
+
+</body>
+
+</html>
